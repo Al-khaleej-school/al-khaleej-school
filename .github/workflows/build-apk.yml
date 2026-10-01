@@ -9,9 +9,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Unzip project
         run: |
-          unzip -o MadrasatiAndroid-v1.zip
-          rm -rf MadrasatiAndroid-v1.zip
-          ls -R | head -n 100
+          ZIP_FILE=$(find . -name "*.zip" | head -n 1)
+          echo "Zip found: $ZIP_FILE"
+          unzip -o "$ZIP_FILE"
+          rm -f "$ZIP_FILE"
+          ls -R | head -n 150
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -20,8 +22,7 @@ jobs:
       - name: Build APK
         run: |
           GRADLEW=$(find . -name gradlew -type f | head -n 1)
-          echo "Found gradlew at $GRADLEW"
-          if [ -z "$GRADLEW" ]; then echo "gradlew hakuna"; exit 1; fi
+          echo "Found: $GRADLEW"
           DIR=$(dirname "$GRADLEW")
           cd "$DIR"
           chmod +x gradlew
@@ -32,4 +33,4 @@ jobs:
           name: Madrasati-APK
           path: |
             **/app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/debug/*.apk
+            **/build/outputs/apk/debug/*.apk
