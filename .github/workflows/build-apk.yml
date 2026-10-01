@@ -21,18 +21,30 @@ jobs:
           distribution: 'temurin'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-      - name: Fix JVM Target
+      - name: Force Java 17 for all
         run: |
           cd "$PROJECT_DIR"
-          sed -i 's/VERSION_1_8/VERSION_17/g' app/build.gradle.kts || true
-          sed -i 's/VERSION_1_8/VERSION_17/g' app/build.gradle || true
-          sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' app/build.gradle.kts || true
-          sed -i 's/"1.8"/"17"/g' app/build.gradle.kts || true
+          # Badilisha kila mahali 1.8 -> 17
+          find . -name "build.gradle*" -exec sed -i 's/VERSION_1_8/VERSION_17/g; s/1.8/17/g; s/JAVA_1_8/JAVA_17/g' {} \;
+          # Tengeneza file inayolazimisha gradle kutumia 17
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/init.gradle << 'EOF'
+          allprojects {
+            tasks.withType(JavaCompile).configureEach {
+                sourceCompatibility = "17"
+                targetCompatibility = "17"
+            }
+            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                kotlinOptions.jvmTarget = "17"
+            }
+          }
+          EOF
+          cat ~/.gradle/init.gradle
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          gradle assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace --warning-mode all
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
