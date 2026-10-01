@@ -14,6 +14,8 @@ jobs:
           rm -f "$ZIP"
           PROJECT_DIR=$(find . -name "settings.gradle*" | head -n 1 | xargs dirname)
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Project: $PROJECT_DIR"
+          ls "$PROJECT_DIR/app/"
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -21,30 +23,29 @@ jobs:
           distribution: 'temurin'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-      - name: Force Java 17 for all
+      - name: Fix Java 1.8 -> 17
         run: |
           cd "$PROJECT_DIR"
-          # Badilisha kila mahali 1.8 -> 17
-          find . -name "build.gradle*" -exec sed -i 's/VERSION_1_8/VERSION_17/g; s/1.8/17/g; s/JAVA_1_8/JAVA_17/g' {} \;
-          # Tengeneza file inayolazimisha gradle kutumia 17
-          mkdir -p ~/.gradle
-          cat > ~/.gradle/init.gradle << 'EOF'
-          allprojects {
-            tasks.withType(JavaCompile).configureEach {
-                sourceCompatibility = "17"
-                targetCompatibility = "17"
-            }
-            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                kotlinOptions.jvmTarget = "17"
-            }
-          }
-          EOF
-          cat ~/.gradle/init.gradle
+          rm -f ~/.gradle/init.gradle
+          # Badilisha kila file
+          find . -name "build.gradle" -o -name "build.gradle.kts" | while read f; do
+            echo "Fixing $f"
+            sed -i 's/VERSION_1_8/VERSION_17/g' "$f"
+            sed -i 's/VERSION_1_7/VERSION_17/g' "$f"
+            sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' "$f"
+            sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' "$f"
+            sed -i 's/jvmTarget = "11"/jvmTarget = "17"/g' "$f"
+            sed -i 's/"1.8"/"17"/g' "$f"
+            sed -i "s/'1.8'/'17'/g" "$f"
+          done
+          # Ongeza toolchain kama haipo
+          grep -q "jvmToolchain" app/build.gradle.kts || echo '    kotlin { jvmToolchain(17) }' >> app/build.gradle.kts || true
+          cat app/build.gradle.kts
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          gradle assembleDebug --stacktrace --warning-mode all
+          gradle assembleDebug --stacktrace
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
