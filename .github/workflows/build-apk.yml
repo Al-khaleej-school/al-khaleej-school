@@ -1,7 +1,5 @@
 name: Build Madrasati APK
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 jobs:
   build:
@@ -13,6 +11,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5
+      - run: gradle wrapper --gradle-version 8.5
       - run: chmod +x ./gradlew
       - run: ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
